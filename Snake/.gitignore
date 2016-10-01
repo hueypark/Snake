@@ -1,0 +1,8 @@
+/Intermediate
+/Saved
+/Binaries
+/.vs
+
+*.sln
+*.suo
+Snake.VC.db
