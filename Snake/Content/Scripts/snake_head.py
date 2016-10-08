@@ -1,12 +1,23 @@
+import unreal_engine as ue
 from config import SNAKE_MOVE_SPEED
+
+BODY_SPAWN_PERIOD = 2
 
 
 class SnakeHead:
+    def __init__(self):
+        self.body_spawn_remain_time = BODY_SPAWN_PERIOD
+
     def begin_play(self):
+        self.body_spawn_remain_time = BODY_SPAWN_PERIOD
         self.uobject.bind_axis('TurnRate', self.__turn)
 
     def tick(self, delta_time):
         self.__move_forward(delta_time)
+        self.body_spawn_remain_time -= delta_time
+        if self.body_spawn_remain_time < 0:
+            self.body_spawn_remain_time += BODY_SPAWN_PERIOD
+            self.__spawn_body()
 
     def __move_forward(self, delta_time):
         location = self.uobject.get_actor_location()
