@@ -7,9 +7,12 @@ BODY_SPAWN_PERIOD = 2
 class SnakeHead:
     def __init__(self):
         self.body_spawn_remain_time = BODY_SPAWN_PERIOD
+        self.bodys = []
 
     def begin_play(self):
         self.body_spawn_remain_time = BODY_SPAWN_PERIOD
+        self.bodys = []
+
         self.uobject.bind_axis('TurnRate', self.__turn)
 
     def tick(self, delta_time):
@@ -17,8 +20,14 @@ class SnakeHead:
         self.body_spawn_remain_time -= delta_time
         if self.body_spawn_remain_time < 0:
             self.body_spawn_remain_time += BODY_SPAWN_PERIOD
+
             snake_body = self.__spawn_body()
-            snake_body.set_prev_snake(self)
+            if not self.bodys:
+                snake_body.set_prev_snake(self)
+            else:
+                snake_body.set_prev_snake(self.bodys[-1])
+
+            self.bodys.append(snake_body)
 
     def __move_forward(self, delta_time):
         location = self.uobject.get_actor_location()
