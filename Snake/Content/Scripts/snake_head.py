@@ -42,5 +42,16 @@ class SnakeHead:
         self.uobject.set_actor_rotation(rotation)
 
     def __spawn_body(self) -> SnakeBody:
-        snake_body_uobject = self.uobject.call_function('SpawnSnakeBody')[0]
+        location = None
+        rotation = None
+        if not self.bodys:
+            uobject = self.uobject
+            location = uobject.get_actor_location()
+            rotation = uobject.get_actor_rotation()
+        else:
+            uobject = self.bodys[-1].uobject
+            location = uobject.get_actor_location()
+            rotation = uobject.get_actor_rotation()
+
+        snake_body_uobject = self.uobject.call_function('SpawnSnakeBody', location, rotation)[0]
         return snake_body_uobject.get_py_proxy()

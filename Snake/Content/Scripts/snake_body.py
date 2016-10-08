@@ -1,15 +1,26 @@
-from config import SNAKE_MOVE_SPEED, SNAKE_TURN_RATE
+from config import SNAKE_BODY_ACTIVE_STANBY_TIME, SNAKE_MOVE_SPEED, SNAKE_TURN_RATE
 from unreal_engine import FVector
 
 
 class SnakeBody:
     def __init__(self):
         self.prev_snake = None
+        self.active = False
+        self.active_stanby_time = SNAKE_BODY_ACTIVE_STANBY_TIME
 
     def begin_play(self):
         self.prev_snake = None
+        self.active = False
+        self.active_stanby_time = SNAKE_BODY_ACTIVE_STANBY_TIME
 
     def tick(self, delta_time):
+        if self.active is False:
+            self.active_stanby_time -= delta_time
+            if self.active_stanby_time < 0:
+                self.active = True
+
+            return
+
         location = self.uobject.get_actor_location()
         location += self.uobject.get_actor_forward() * SNAKE_MOVE_SPEED * delta_time
         self.uobject.set_actor_location(location)
