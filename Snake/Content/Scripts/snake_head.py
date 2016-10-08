@@ -1,4 +1,4 @@
-from config import SNAKE_MOVE_SPEED, SNAKE_TURN_RATE
+from config import SNAKE_MOVE_SPEED_HEAD, SNAKE_TURN_RATE_HEAD
 from snake_body import SnakeBody
 
 BODY_SPAWN_PERIOD = 2
@@ -31,11 +31,11 @@ class SnakeHead:
 
     def __move_forward(self, delta_time):
         location = self.uobject.get_actor_location()
-        location += self.uobject.get_actor_forward() * SNAKE_MOVE_SPEED * delta_time
+        location += self.uobject.get_actor_forward() * SNAKE_MOVE_SPEED_HEAD * delta_time
         self.uobject.set_actor_location(location)
 
     def __turn(self, axis_value):
-        turn_rate = axis_value * self.uobject.get_world_delta_seconds() * SNAKE_TURN_RATE
+        turn_rate = axis_value * self.uobject.get_world_delta_seconds() * SNAKE_TURN_RATE_HEAD
 
         rotation = self.uobject.get_actor_rotation()
         rotation.yaw += turn_rate
