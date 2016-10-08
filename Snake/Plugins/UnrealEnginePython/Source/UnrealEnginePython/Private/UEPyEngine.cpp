@@ -3,8 +3,6 @@
 #include "Kismet/KismetSystemLibrary.h"
 #include "Kismet/KismetMathLibrary.h"
 
-#include "PythonGeneratedClass.h"
-
 PyObject *py_unreal_engine_log(PyObject * self, PyObject * args) {
 	PyObject *py_message;
 	if (!PyArg_ParseTuple(args, "O:log", &py_message)) {
@@ -374,8 +372,7 @@ PyObject *py_unreal_engine_new_class(PyObject * self, PyObject * args) {
 		return NULL;
 	}
 
-	UObject *outer = GetTransientPackage();
-	UClass *parent = UObject::StaticClass();
+	UClass *parent = nullptr;
 
 	if (py_parent != Py_None) {
 		if (!ue_is_pyuobject(py_parent)) {
@@ -385,30 +382,11 @@ PyObject *py_unreal_engine_new_class(PyObject * self, PyObject * args) {
 		if (!py_obj->ue_object->IsA<UClass>())
 			return PyErr_Format(PyExc_Exception, "uobject is not a UClass");
 		parent = (UClass *)py_obj->ue_object;
-		outer = parent->GetOuter();
 	}
 
-
-	UClass *new_object = NewObject<UClass>(outer, UTF8_TO_TCHAR(name), RF_Public | RF_Transient | RF_MarkAsNative);
+	UClass *new_object = unreal_engine_new_uclass(name, parent);
 	if (!new_object)
 		return PyErr_Format(PyExc_Exception, "unable to create UClass");
-
-	new_object->ClassConstructor = parent->ClassConstructor;
-	new_object->SetSuperStruct(parent);
-
-	new_object->PropertyLink = parent->PropertyLink;
-	new_object->ClassWithin = parent->ClassWithin;
-	new_object->ClassConfigName = parent->ClassConfigName;
-
-	new_object->ClassFlags |= (parent->ClassFlags & (CLASS_Inherit | CLASS_ScriptInherit));
-	new_object->ClassFlags |= CLASS_Native;
-
-	new_object->ClassCastFlags = parent->ClassCastFlags;
-
-	new_object->Bind();
-	new_object->StaticLink(true);
-
-	new_object->GetDefaultObject();
 
 	ue_PyUObject *ret = ue_get_python_wrapper(new_object);
 	if (!ret)

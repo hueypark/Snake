@@ -11,6 +11,9 @@ typedef struct {
 	PyObject_HEAD
 		/* Type-specific fields go here. */
 		UObject *ue_object;
+		// reference to proxy class (can be null)
+		PyObject *py_proxy;
+		// list of exposed delegates
 		std::list<UPythonDelegate*> *python_delegates_gc;
 } ue_PyUObject;
 
@@ -29,3 +32,6 @@ PyObject *ue_bind_pyevent(ue_PyUObject *, FString, PyObject *, bool);
 PyObject *py_ue_ufunction_call(UFunction *, UObject *, PyObject *, int, PyObject *);
 
 void ue_pydelegates_cleanup(ue_PyUObject *);
+
+UClass *unreal_engine_new_uclass(char *, UClass *);
+UFunction *unreal_engine_add_function(UClass *, char *, PyObject *, uint32);

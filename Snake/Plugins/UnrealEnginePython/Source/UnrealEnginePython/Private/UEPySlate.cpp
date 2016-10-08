@@ -147,10 +147,61 @@ PyObject *py_unreal_engine_add_menu_extension(PyObject * self, PyObject * args) 
 static PyObject *ue_PySWidget_str(ue_PySWidget *self)
 {
 	return PyUnicode_FromFormat("<unreal_engine.SWidget '%s'>",
-		TCHAR_TO_UTF8(*self->s_widget->GetTypeAsString()));
+		TCHAR_TO_UTF8(*self->s_widget_ref->Get().GetTypeAsString()));
+}
+
+static PyObject *py_slate_set_content(ue_PySWidget *self, PyObject * args) {
+	PyObject *py_obj;
+	if (!PyArg_ParseTuple(args, "O:set_content", &py_obj)) {
+		return NULL;
+	}
+
+	ue_PySWidget *s_widget = (ue_PySWidget *)py_obj;
+
+	if (self->s_widget_type & PY_SLATE_BORDER) {
+		SBorder *s_border = (SBorder *)&self->s_widget_ref->Get();
+		s_border->SetContent(*s_widget->s_widget_ref);
+	}
+	else if (self->s_widget_type & PY_SLATE_BOX) {
+		SBox *s_box = (SBox *)&self->s_widget_ref->Get();
+		s_box->SetContent(*s_widget->s_widget_ref);
+	}
+	else if (self->s_widget_type & PY_SLATE_WINDOW) {
+		SWindow *s_win = (SWindow *)&self->s_widget_ref->Get();
+		s_win->SetContent(*s_widget->s_widget_ref);
+	}
+	else {
+		return PyErr_Format(PyExc_Exception, "slate object does not expose the SetContent() method");
+	}
+
+	Py_INCREF(self);
+	return (PyObject*)self;
+}
+
+static PyObject *py_slate_get_window_handle(ue_PySWidget *self, PyObject * args) {
+	
+	if (self->s_widget_type & PY_SLATE_WINDOW) {
+		SWindow *s_window = (SWindow *)&self->s_widget_ref->Get();
+		return PyLong_FromLongLong((long long)s_window->GetNativeWindow()->GetOSWindowHandle());
+	}
+
+	if (self->s_widget_type & PY_SLATE_TAB) {
+		SDockTab *s_tab = (SDockTab *)&self->s_widget_ref->Get();
+		if (s_tab->GetParentWindow().IsValid()) {
+			return PyLong_FromLongLong((long long)s_tab->GetParentWindow()->GetNativeWindow()->GetOSWindowHandle());
+		}
+		return PyErr_Format(PyExc_Exception, "slate tab has no parent window");
+	}
+	
+	return PyErr_Format(PyExc_Exception, "slate object does not expose the GetNativeWindow() method");
+
+	Py_INCREF(self);
+	return (PyObject*)self;
 }
 
 static PyMethodDef ue_PySWidget_methods[] = {
+	{ "set_content", (PyCFunction)py_slate_set_content, METH_VARARGS, "" },
+	{ "get_window_handle", (PyCFunction)py_slate_get_window_handle, METH_VARARGS, "" },
 	{ NULL }  /* Sentinel */
 };
 
@@ -212,10 +263,83 @@ PyObject *py_unreal_engine_add_nomad_tab(PyObject *self, PyObject *args) {
 		.SetDisplayName(FText::FromString(UTF8_TO_TCHAR(name)))
 		.SetMenuType(ETabSpawnerMenuType::Hidden);
 
-	FGlobalTabmanager::Get()->InvokeTab(FName(name));
+	ue_PySWidget *ue_py_s_widget = (ue_PySWidget *)PyObject_New(ue_PySWidget, &ue_PySWidgetType);
+	ue_py_s_widget->s_widget_ref = new TSharedRef<SWidget>(&FGlobalTabmanager::Get()->InvokeTab(FName(name)).Get());
+	ue_py_s_widget->s_widget_type = PY_SLATE_TAB|PY_SLATE_BORDER;
 
-	// TODO return a unreal_engine.SWidget
-	Py_INCREF(Py_None);
-	return Py_None;
+	Py_INCREF(ue_py_s_widget);
+	return (PyObject *)ue_py_s_widget;
+}
+
+PyObject *py_unreal_engine_slate_text_block(PyObject *self, PyObject *args) {
+	char *text;
+	if (!PyArg_ParseTuple(args, "s:slate_text_block", &text)) {
+		return NULL;
+	}
+
+	ue_PySWidget *ue_py_s_widget = (ue_PySWidget *)PyObject_New(ue_PySWidget, &ue_PySWidgetType);
+	ue_py_s_widget->s_widget_ref = new TSharedRef<SWidget>(SNew(STextBlock).Text(FText::FromString(UTF8_TO_TCHAR(text))));
+
+	Py_INCREF(ue_py_s_widget);
+	return (PyObject*)ue_py_s_widget;
+}
+
+PyObject *py_unreal_engine_slate_box(PyObject *self, PyObject *args) {
+	
+	ue_PySWidget *ue_py_s_widget = (ue_PySWidget *)PyObject_New(ue_PySWidget, &ue_PySWidgetType);
+	ue_py_s_widget->s_widget_ref = new TSharedRef<SWidget>(SNew(SBox).HAlign(HAlign_Center).VAlign(VAlign_Center));
+	ue_py_s_widget->s_widget_type = PY_SLATE_BOX;
+
+	Py_INCREF(ue_py_s_widget);
+	return (PyObject*)ue_py_s_widget;
+}
+
+PyObject *py_unreal_engine_get_editor_window(PyObject *self, PyObject *args) {
+
+	if (!FGlobalTabmanager::Get()->GetRootWindow().IsValid()) {
+		return PyErr_Format(PyExc_Exception, "no RootWindow found");
+	}
+
+	ue_PySWidget *ue_py_s_widget = (ue_PySWidget *)PyObject_New(ue_PySWidget, &ue_PySWidgetType);
+	ue_py_s_widget->s_widget_ref = new TSharedRef<SWidget>(FGlobalTabmanager::Get()->GetRootWindow().Get());
+	ue_py_s_widget->s_widget_type = PY_SLATE_WINDOW;
+
+	Py_INCREF(ue_py_s_widget);
+	return (PyObject*)ue_py_s_widget;
+}
+
+PyObject *py_unreal_engine_slate_window(PyObject *self, PyObject *args) {
+	char *text;
+	int width;
+	int height;
+	if (!PyArg_ParseTuple(args, "sii:slate_window", &text, &width, &height)) {
+		return NULL;
+	}
+
+	ue_PySWidget *ue_py_s_widget = (ue_PySWidget *)PyObject_New(ue_PySWidget, &ue_PySWidgetType);
+	ue_py_s_widget->s_widget_ref = new TSharedRef<SWidget>(SNew(SWindow)
+		.Title(FText::FromString(UTF8_TO_TCHAR(text)))
+		.ClientSize(FVector2D(width, height))
+		);
+	ue_py_s_widget->s_widget_type = PY_SLATE_WINDOW;
+	SWindow *s_win = (SWindow *)&ue_py_s_widget->s_widget_ref->Get();
+	TSharedRef<SWindow> *s_window_ref = new TSharedRef<SWindow>(s_win);
+	FSlateApplication::Get().AddWindow(*s_window_ref, true);
+
+	Py_INCREF(ue_py_s_widget);
+	return (PyObject*)ue_py_s_widget;
+}
+
+PyObject *py_unreal_engine_slate_button(PyObject *self, PyObject *args) {
+	char *text;
+	if (!PyArg_ParseTuple(args, "s:slate_button", &text)) {
+		return NULL;
+	}
+
+	ue_PySWidget *ue_py_s_widget = (ue_PySWidget *)PyObject_New(ue_PySWidget, &ue_PySWidgetType);
+	ue_py_s_widget->s_widget_ref = new TSharedRef<SWidget>(SNew(SButton).Text(FText::FromString(UTF8_TO_TCHAR(text))));
+
+	Py_INCREF(ue_py_s_widget);
+	return (PyObject*)ue_py_s_widget;
 }
 #endif

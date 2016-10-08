@@ -32,6 +32,6 @@ class SnakeHead:
         self.uobject.set_actor_rotation(rotation)
 
     def __spawn_body(self):
-        snake_body = self.uobject.call_function('SpawnSnakeBody')
+        snake_body = self.uobject.call_function('SpawnSnakeBody')[0]
 
 
