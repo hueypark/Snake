@@ -143,7 +143,7 @@ PyObject *py_unreal_engine_import_asset(PyObject * self, PyObject * args) {
 			return PyErr_Format(PyExc_Exception, "uobject is not a Class");
 		}	
 	}
-	else if (PyUnicode_Check(obj)) {
+	else if (PyUnicodeOrString_Check(obj)) {
 		char *class_name = PyUnicode_AsUTF8(obj);
 		UClass *u_class = FindObject<UClass>(ANY_PACKAGE, UTF8_TO_TCHAR(class_name));
 		if (u_class) {
@@ -252,6 +252,40 @@ PyObject *py_unreal_engine_get_assets(PyObject * self, PyObject * args) {
 
 	PyObject *assets_list = PyList_New(0);
 
+	for (FAssetData asset : assets) {
+		if (!asset.IsValid())
+			continue;
+		ue_PyUObject *ret = ue_get_python_wrapper(asset.GetAsset());
+		if (ret) {
+			PyList_Append(assets_list, (PyObject *)ret);
+		}
+	}
+
+	return assets_list;
+}
+
+PyObject *py_unreal_engine_get_assets_by_filter(PyObject * self, PyObject * args) {
+
+	PyObject *pyfilter;
+
+	if (!PyArg_ParseTuple(args, "O:get_assets_by_filter", &pyfilter)) {
+		return NULL;
+	}
+
+	ue_PyFARFilter *filter = py_ue_is_farfilter(pyfilter);
+	if (!filter)
+		return PyErr_Format(PyExc_Exception, "Arg is not a FARFilter");
+
+	if (!GEditor)
+		return PyErr_Format(PyExc_Exception, "no GEditor found");
+
+	py_ue_sync_farfilter((PyObject *)filter);
+	TArray<FAssetData> assets;
+	FAssetRegistryModule& AssetRegistryModule = FModuleManager::GetModuleChecked<FAssetRegistryModule>("AssetRegistry");
+	AssetRegistryModule.Get().SearchAllAssets(true);
+	AssetRegistryModule.Get().GetAssets(filter->filter, assets);
+
+	PyObject *assets_list = PyList_New(0);
 	for (FAssetData asset : assets) {
 		if (!asset.IsValid())
 			continue;
@@ -485,7 +519,7 @@ PyObject *py_unreal_engine_create_blueprint_from_actor(PyObject * self, PyObject
 
 	PyObject *py_actor;
 	char *name;
-	if (!PyArg_ParseTuple(args, "sO:create_blueprint", &name, &py_actor)) {
+	if (!PyArg_ParseTuple(args, "sO:create_blueprint_from_actor", &name, &py_actor)) {
 		return NULL;
 	}
 
@@ -494,7 +528,7 @@ PyObject *py_unreal_engine_create_blueprint_from_actor(PyObject * self, PyObject
 	}
 
 	if (!ue_is_pyuobject(py_actor)) {
-		return PyErr_Format(PyExc_Exception, "argument is not a UObject");
+		return PyErr_Format(PyExc_Exception, "argument is not an Actor");
 	}
 	ue_PyUObject *py_obj = (ue_PyUObject *)py_actor;
 	if (!py_obj->ue_object->IsA<AActor>())

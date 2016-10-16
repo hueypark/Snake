@@ -6,6 +6,7 @@
 
 PyObject *py_ue_get_class(ue_PyUObject *, PyObject *);
 PyObject *py_ue_is_a(ue_PyUObject *, PyObject *);
+PyObject *py_ue_is_child_of(ue_PyUObject *, PyObject *);
 PyObject *py_ue_call_function(ue_PyUObject *, PyObject *, PyObject *);
 PyObject *py_ue_find_function(ue_PyUObject *, PyObject *);
 PyObject *py_ue_get_name(ue_PyUObject *, PyObject * args);
@@ -33,8 +34,19 @@ PyObject *py_ue_get_outer(ue_PyUObject *, PyObject *);
 PyObject *py_ue_get_outermost(ue_PyUObject *, PyObject *);
 PyObject *py_ue_conditional_begin_destroy(ue_PyUObject *, PyObject *);
 
+PyObject *py_ue_get_super_class(ue_PyUObject *, PyObject *);
+
+PyObject *py_ue_functions(ue_PyUObject *, PyObject *);
+
+PyObject *py_ue_broadcast(ue_PyUObject *, PyObject *);
+
+
 
 #if WITH_EDITOR
 PyObject *py_ue_save_package(ue_PyUObject *, PyObject *);
 PyObject *py_ue_asset_reimport(ue_PyUObject *, PyObject *);
+
+PyObject *py_ue_get_metadata(ue_PyUObject *, PyObject *);
+PyObject *py_ue_set_metadata(ue_PyUObject *, PyObject *);
+PyObject *py_ue_has_metadata(ue_PyUObject *, PyObject *);
 #endif

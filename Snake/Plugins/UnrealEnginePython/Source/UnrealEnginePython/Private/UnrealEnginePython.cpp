@@ -4,6 +4,10 @@
 
 void unreal_engine_init_py_module();
 
+#if UNREAL_ENGINE_PYTHON_ON_LINUX
+const char *ue4_module_options = "linux_global_symbols";
+#endif
+
 #if PY_MAJOR_VERSION < 3
 char *PyUnicode_AsUTF8(PyObject *py_str) {
 	if (PyUnicode_Check(py_str)) {
@@ -18,6 +22,17 @@ char *PyUnicode_AsUTF8(PyObject *py_str) {
 }
 #endif
 
+bool PyUnicodeOrString_Check(PyObject *py_obj) {
+	if (PyUnicode_Check(py_obj)) {
+		return true;
+	}
+#if PY_MAJOR_VERSION < 3
+	else if (PyString_Check(py_obj)) {
+		return true;
+	}
+#endif
+	return false;
+}
 
 #define LOCTEXT_NAMESPACE "FUnrealEnginePythonModule"
 
@@ -113,7 +128,11 @@ void FUnrealEnginePythonModule::RunString(char *str) {
 
 void FUnrealEnginePythonModule::RunFile(char *filename) {
 	FScopePythonGIL gil;
-	char *full_path = TCHAR_TO_UTF8(*FPaths::Combine(*FPaths::GameContentDir(), UTF8_TO_TCHAR("Scripts"), *FString("/"), UTF8_TO_TCHAR(filename)));
+	char *full_path = filename;
+	if (!FPaths::FileExists(filename))
+	{
+		full_path = TCHAR_TO_UTF8(*FPaths::Combine(*FPaths::GameContentDir(), UTF8_TO_TCHAR("Scripts"), *FString("/"), UTF8_TO_TCHAR(filename)));
+	}
 	FILE *fd = nullptr;
 	
 #if PLATFORM_WINDOWS

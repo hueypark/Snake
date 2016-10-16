@@ -129,6 +129,9 @@ PyObject *py_unreal_engine_get_up_vector(PyObject * self, PyObject * args) {
 	return py_ue_new_fvector(vec);
 }
 
+PyObject *py_unreal_engine_get_content_dir(PyObject * self, PyObject * args) {
+	return PyUnicode_FromString(TCHAR_TO_UTF8(*FPaths::GameContentDir()));
+}
 
 PyObject *py_unreal_engine_find_class(PyObject * self, PyObject * args) {
 	char *name;
@@ -393,6 +396,19 @@ PyObject *py_unreal_engine_new_class(PyObject * self, PyObject * args) {
 		return PyErr_Format(PyExc_Exception, "uobject is in invalid state");
 	Py_INCREF(ret);
 	return (PyObject *)ret;
+}
+
+PyObject *py_unreal_engine_classes(PyObject * self, PyObject * args) {
+
+	PyObject *ret = PyList_New(0);
+
+	for (TObjectIterator<UClass> Itr; Itr; ++Itr) {
+		ue_PyUObject *py_obj = ue_get_python_wrapper(*Itr);
+		if (!py_obj)
+			continue;
+		PyList_Append(ret, (PyObject *)py_obj);
+	}
+	return ret;
 }
 
 PyObject *py_unreal_engine_create_and_dispatch_when_ready(PyObject * self, PyObject * args) {

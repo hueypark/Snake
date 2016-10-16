@@ -19,6 +19,26 @@ PyObject *py_ue_get_class(ue_PyUObject * self, PyObject * args) {
 	return (PyObject *)ret;
 }
 
+PyObject *py_ue_get_super_class(ue_PyUObject * self, PyObject * args) {
+
+	ue_py_check(self);
+
+	UClass *u_class = nullptr;
+
+	if (self->ue_object->IsA<UClass>()) {
+		u_class = (UClass *)self->ue_object;
+	}
+	else {
+		u_class = self->ue_object->GetClass();
+	}
+
+	ue_PyUObject *ret = ue_get_python_wrapper(u_class->GetSuperClass());
+	if (!ret)
+		return PyErr_Format(PyExc_Exception, "PyUObject is in invalid state");
+	Py_INCREF(ret);
+	return (PyObject *)ret;
+}
+
 PyObject *py_ue_get_outer(ue_PyUObject *self, PyObject * args) {
 
 	ue_py_check(self);
@@ -75,6 +95,125 @@ PyObject *py_ue_is_a(ue_PyUObject * self, PyObject * args) {
 	return Py_False;
 }
 
+PyObject *py_ue_is_child_of(ue_PyUObject * self, PyObject * args) {
+
+	ue_py_check(self);
+
+	PyObject *obj;
+	if (!PyArg_ParseTuple(args, "O:is_child_of", &obj)) {
+		return NULL;
+	}
+
+	if (!self->ue_object->IsA<UClass>())
+		return PyErr_Format(PyExc_Exception, "object is not a UClass");
+
+	if (!ue_is_pyuobject(obj)) {
+		return PyErr_Format(PyExc_Exception, "argument is not a UObject");
+	}
+	
+	ue_PyUObject *py_obj = (ue_PyUObject *)obj;
+
+	if (!py_obj->ue_object->IsA<UClass>())
+		return PyErr_Format(PyExc_Exception, "argument is not a UClass");
+
+	UClass *parent = (UClass *)py_obj->ue_object;
+	UClass *child = (UClass *)self->ue_object;
+
+	if (child->IsChildOf(parent)) {
+		Py_INCREF(Py_True);
+		return Py_True;
+	}
+
+	Py_INCREF(Py_False);
+	return Py_False;
+}
+
+#if WITH_EDITOR
+PyObject *py_ue_set_metadata(ue_PyUObject * self, PyObject * args) {
+
+	ue_py_check(self);
+
+	char *metadata_key;
+	char *metadata_value;
+	if (!PyArg_ParseTuple(args, "ss:set_metadata", &metadata_key, &metadata_value)) {
+		return NULL;
+	}
+
+	if (self->ue_object->IsA<UClass>()) {
+		UClass *u_class = (UClass *)self->ue_object;
+		u_class->SetMetaData(FName(UTF8_TO_TCHAR(metadata_key)), UTF8_TO_TCHAR(metadata_value));
+	}
+	else if (self->ue_object->IsA<UField>()) {
+		UField *u_field = (UField *)self->ue_object;
+		u_field->SetMetaData(FName(UTF8_TO_TCHAR(metadata_key)), UTF8_TO_TCHAR(metadata_value));
+	}
+	else {
+		return PyErr_Format(PyExc_TypeError, "the object does not support MetaData");
+	}
+
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+PyObject *py_ue_get_metadata(ue_PyUObject * self, PyObject * args) {
+
+	ue_py_check(self);
+
+	char *metadata_key;
+	if (!PyArg_ParseTuple(args, "s:get_metadata", &metadata_key)) {
+		return NULL;
+	}
+
+	char *metadata_value = nullptr;
+
+	if (self->ue_object->IsA<UClass>()) {
+		UClass *u_class = (UClass *)self->ue_object;
+		FString value = u_class->GetMetaData(FName(UTF8_TO_TCHAR(metadata_key)));
+		return PyUnicode_FromString(TCHAR_TO_UTF8(*value));
+	}
+
+	if (self->ue_object->IsA<UField>()) {
+		UField *u_field = (UField *)self->ue_object;
+		FString value = u_field->GetMetaData(FName(UTF8_TO_TCHAR(metadata_key)));
+		return PyUnicode_FromString(TCHAR_TO_UTF8(*value));
+	}
+	
+	return PyErr_Format(PyExc_TypeError, "the object does not support MetaData");
+}
+
+PyObject *py_ue_has_metadata(ue_PyUObject * self, PyObject * args) {
+
+	ue_py_check(self);
+
+	char *metadata_key;
+	if (!PyArg_ParseTuple(args, "s:has_metadata", &metadata_key)) {
+		return NULL;
+	}
+
+	if (self->ue_object->IsA<UClass>()) {
+		UClass *u_class = (UClass *)self->ue_object;
+		if (u_class->HasMetaData(FName(UTF8_TO_TCHAR(metadata_key)))) {
+			Py_INCREF(Py_True);
+			return Py_True;
+		}
+		Py_INCREF(Py_False);
+		return Py_False;
+	}
+
+	if (self->ue_object->IsA<UField>()) {
+		UField *u_field = (UField *)self->ue_object;
+		if (u_field->HasMetaData(FName(UTF8_TO_TCHAR(metadata_key)))) {
+			Py_INCREF(Py_True);
+			return Py_True;
+		}
+		Py_INCREF(Py_False);
+		return Py_False;
+	}
+
+	return PyErr_Format(PyExc_TypeError, "the object does not support MetaData");
+}
+#endif
+
 PyObject *py_ue_call_function(ue_PyUObject * self, PyObject * args, PyObject *kwargs) {
 
 	ue_py_check(self);
@@ -87,7 +226,7 @@ PyObject *py_ue_call_function(ue_PyUObject * self, PyObject * args, PyObject *kw
 
 	PyObject *func_id = PyTuple_GetItem(args, 0);
 
-	if (PyUnicode_Check(func_id)) {
+	if (PyUnicodeOrString_Check(func_id)) {
 		function = self->ue_object->FindFunction(FName(UTF8_TO_TCHAR(PyUnicode_AsUTF8(func_id))));
 	}
 
@@ -112,8 +251,6 @@ PyObject *py_ue_find_function(ue_PyUObject * self, PyObject * args) {
 		Py_INCREF(Py_None);
 		return Py_None;
 	}
-
-	UE_LOG(LogPython, Warning, TEXT("Func %d %d"), function->NumParms, function->ReturnValueOffset);
 
 	ue_PyUObject *ret = ue_get_python_wrapper((UObject *)function);
 	if (!ret)
@@ -230,6 +367,32 @@ PyObject *py_ue_properties(ue_PyUObject *self, PyObject * args) {
 	}
 
 	return ret;
+}
+
+PyObject *py_ue_functions(ue_PyUObject *self, PyObject * args) {
+
+	ue_py_check(self);
+
+	UStruct *u_struct = nullptr;
+
+	if (self->ue_object->IsA<UStruct>()) {
+		u_struct = (UStruct *)self->ue_object;
+	}
+	else {
+		u_struct = (UStruct *)self->ue_object->GetClass();
+	}
+
+	PyObject *ret = PyList_New(0);
+
+	for (TFieldIterator<UFunction> FuncIt(u_struct); FuncIt; ++FuncIt)
+	{
+		UFunction* func = *FuncIt;
+		PyObject *func_name = PyUnicode_FromString(TCHAR_TO_UTF8(*func->GetFName().ToString()));
+		PyList_Append(ret, func_name);
+		Py_DECREF(func_name);
+	}
+
+	return ret;
 
 }
 
@@ -250,6 +413,32 @@ PyObject *py_ue_call(ue_PyUObject *self, PyObject * args) {
 	Py_INCREF(Py_None);
 	return Py_None;
 
+}
+
+PyObject *py_ue_broadcast(ue_PyUObject *self, PyObject *args) {
+
+	ue_py_check(self);
+
+	char *property_name;
+	if (!PyArg_ParseTuple(args, "s:broadcast", &property_name)) {
+		return NULL;
+	}
+
+	UProperty *u_property = self->ue_object->GetClass()->FindPropertyByName(FName(UTF8_TO_TCHAR(property_name)));
+	if (!u_property)
+			return PyErr_Format(PyExc_Exception, "unable to find event property %s", TCHAR_TO_UTF8(property_name));
+
+	if (auto casted_prop = Cast<UMulticastDelegateProperty>(u_property)) {
+		FMulticastScriptDelegate multiscript_delegate = casted_prop->GetPropertyValue_InContainer(self->ue_object);
+		uint8 *parms = (uint8 *)FMemory_Alloca(0);
+		multiscript_delegate.ProcessMulticastDelegate<UObject>(parms);
+	}
+	else {
+		return PyErr_Format(PyExc_Exception, "property is not a UMulticastDelegateProperty");
+	}
+
+	Py_INCREF(Py_None);
+	return Py_None;
 }
 
 PyObject *py_ue_get_property(ue_PyUObject *self, PyObject * args) {
@@ -439,8 +628,18 @@ PyObject *py_ue_add_property(ue_PyUObject * self, PyObject * args) {
 
 	if (u_class == UMulticastDelegateProperty::StaticClass()) {
 		UMulticastDelegateProperty *mcp = (UMulticastDelegateProperty *)u_property;
-		mcp->SignatureFunction = NewObject<UFunction>(self->ue_object);
+		mcp->SignatureFunction = NewObject<UFunction>(self->ue_object, NAME_None, RF_Public | RF_Transient | RF_MarkAsNative);
+		mcp->SignatureFunction->FunctionFlags = FUNC_MulticastDelegate | FUNC_BlueprintCallable | FUNC_Native;
 		flags |= CPF_BlueprintAssignable | CPF_BlueprintCallable;
+		flags &= ~CPF_Edit;
+	}
+
+	else if (u_class == UDelegateProperty::StaticClass()) {
+		UDelegateProperty *udp = (UDelegateProperty *)u_property;
+		udp->SignatureFunction = NewObject<UFunction>(self->ue_object, NAME_None, RF_Public | RF_Transient | RF_MarkAsNative);
+		udp->SignatureFunction->FunctionFlags = FUNC_MulticastDelegate | FUNC_BlueprintCallable | FUNC_Native;
+		flags |= CPF_BlueprintAssignable | CPF_BlueprintCallable;
+		flags &= ~CPF_Edit;
 	}
 
 	u_property->SetPropertyFlags(flags);
@@ -454,10 +653,9 @@ PyObject *py_ue_add_property(ue_PyUObject * self, PyObject * args) {
 	if (u_struct->IsA<UClass>()) {
 		UClass *owner_class = (UClass *)u_struct;
 		owner_class->GetDefaultObject()->RemoveFromRoot();
-		owner_class->GetDefaultObject()->MarkPendingKill();
+		owner_class->GetDefaultObject()->ConditionalBeginDestroy();
 		owner_class->ClassDefaultObject = nullptr;
-		owner_class->GetDefaultObject();
-		//u_property->InitializeValue_InContainer(owner_class->GetDefaultObject());
+		owner_class->GetDefaultObject()->PostInitProperties();
 	}
 
 	// TODO add default value

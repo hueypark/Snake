@@ -126,6 +126,7 @@ PyObject *py_ue_get_actor_velocity(ue_PyUObject *self, PyObject * args) {
 
 }
 
+
 #if WITH_EDITOR
 PyObject *py_ue_get_actor_label(ue_PyUObject *self, PyObject * args) {
 
@@ -218,6 +219,41 @@ PyObject *py_ue_get_owner(ue_PyUObject *self, PyObject * args) {
 	return (PyObject *)ret;
 }
 
+PyObject *py_ue_register_component(ue_PyUObject *self, PyObject * args) {
+
+	ue_py_check(self);
+
+	if (!self->ue_object->IsA<UActorComponent>()) {
+		return PyErr_Format(PyExc_Exception, "uobject is not a component");
+	}
+
+	UActorComponent *component = (UActorComponent *)self->ue_object;
+
+	component->RegisterComponent();
+
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+PyObject *py_ue_component_is_registered(ue_PyUObject *self, PyObject * args) {
+
+	ue_py_check(self);
+
+	if (!self->ue_object->IsA<UActorComponent>()) {
+		return PyErr_Format(PyExc_Exception, "uobject is not a component");
+	}
+
+	UActorComponent *component = (UActorComponent *)self->ue_object;
+
+	if (component->IsRegistered()) {
+		Py_INCREF(Py_True);
+		return Py_True;
+	}
+
+	Py_INCREF(Py_False);
+	return Py_False;
+}
+
 PyObject *py_ue_add_actor_component(ue_PyUObject * self, PyObject * args) {
 
 	ue_py_check(self);
@@ -248,7 +284,9 @@ PyObject *py_ue_add_actor_component(ue_PyUObject * self, PyObject * args) {
 	if (!component)
 		return PyErr_Format(PyExc_Exception, "unable to create component");
 
-	component->RegisterComponent();
+	if (actor->GetWorld()) {
+		component->RegisterComponent();
+	}
 
 	PyObject *ret = (PyObject *)ue_get_python_wrapper(component);
 	if (!ret)
@@ -290,7 +328,9 @@ PyObject *py_ue_add_actor_root_component(ue_PyUObject * self, PyObject * args) {
 
 	actor->SetRootComponent(component);
 
-	component->RegisterComponent();
+	if (actor->GetWorld()) {
+		component->RegisterComponent();
+	}
 
 	PyObject *ret = (PyObject *)ue_get_python_wrapper(component);
 	if (!ret)
@@ -346,7 +386,7 @@ PyObject *py_ue_get_actor_component_by_type(ue_PyUObject * self, PyObject * args
 		py_obj = (ue_PyUObject *)obj;
 	}
 	// shortcut for finding class by string
-	else if (PyUnicode_Check(obj)) {
+	else if (PyUnicodeOrString_Check(obj)) {
 		char *class_name = PyUnicode_AsUTF8(obj);
 		UClass *u_class = FindObject<UClass>(ANY_PACKAGE, UTF8_TO_TCHAR(class_name));
 
@@ -394,7 +434,7 @@ PyObject *py_ue_get_actor_components_by_type(ue_PyUObject * self, PyObject * arg
 		py_obj = (ue_PyUObject *)obj;
 	}
 	// shortcut for finding class by string
-	else if (PyUnicode_Check(obj)) {
+	else if (PyUnicodeOrString_Check(obj)) {
 		char *class_name = PyUnicode_AsUTF8(obj);
 		UClass *u_class = FindObject<UClass>(ANY_PACKAGE, UTF8_TO_TCHAR(class_name));
 
@@ -472,7 +512,6 @@ PyObject *py_ue_actor_spawn(ue_PyUObject * self, PyObject * args) {
 		return PyErr_Format(PyExc_Exception, "uobject is in invalid state");
 	Py_INCREF(ret);
 	return ret;
-
 }
 
 PyObject *py_ue_get_overlapping_actors(ue_PyUObject * self, PyObject * args) {
