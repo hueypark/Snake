@@ -12,7 +12,7 @@ class ShakerComponent:
 
     def begin_play(self):
         self.static_mesh_component = self.uobject.get_actor_component_by_type(ue.find_class('StaticMeshComponent'))
-        self.shake_cooldown = SHAKE_COOLDOWN
+        self.shake_cooldown = 0
 
     def tick(self, delta_time: float):
         if self.shake_cooldown < 0:
