@@ -24,7 +24,6 @@ class HoverComponent:
 
     def __get_axis_torque(self, axis_rotation: float, axis_angular_velocity: float) -> float:
         desired_velocity = self.__get_desired_axis_velocity(axis_rotation)
-        ue.print_string(str(axis_angular_velocity) + ', ' + str(desired_velocity))
         if axis_angular_velocity < desired_velocity:
             return -1
         else:
