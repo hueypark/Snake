@@ -16,6 +16,7 @@ class SnakeHead:
         self.uobject.bind_axis('TurnRate', self.__turn)
 
     def tick(self, delta_time):
+        return
         self.__move_forward(delta_time)
         self.body_spawn_remain_time -= delta_time
         if self.body_spawn_remain_time < 0:
