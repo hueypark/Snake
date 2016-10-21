@@ -1,3 +1,3 @@
-[submodule "Snake/Plugins/UnrealEnginePython"]
-	path = Snake/Plugins/UnrealEnginePython
+[submodule "Code/Plugins/UnrealEnginePython"]
+	path = Code/Plugins/UnrealEnginePython
 	url = https://github.com/HueyPark/UnrealEnginePython.git
