@@ -3,6 +3,7 @@
 /Binaries
 /.vs
 
+*.pyc
 *.sln
 *.suo
 Snake.VC.db
