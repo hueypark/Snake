@@ -1,7 +1,8 @@
 import unreal_engine as ue
-from config import SNAKE_MOVE_SPEED_HEAD
-from snake_body import SnakeBody
 from unreal_engine import FVector
+
+from config import SNAKE_MOVE_SPEED_HEAD
+from pawns.snake_body import SnakeBody
 
 SNAKE_TURN_RATE_HEAD = 360
 BODY_SPAWN_PERIOD = 2
