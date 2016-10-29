@@ -1,7 +1,9 @@
-/Intermediate
-/Saved
-/Binaries
 /.vs
+/Binaries
+/Intermediate
+/Content/Scripts/.cache
+/Saved
+
 
 *.pyc
 *.sln
