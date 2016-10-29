@@ -1,9 +1,15 @@
-from configs.config_hover import DAMP_START_ANGLE, MAX_AXIS_VELOCITY
+from configs.config_hover import DAMP_START_ANGLE, HOVER_TORQUE, MAX_AXIS_VELOCITY
 from framework.math import lerp
 
 
 def get_axis_torque(axis_rotation: float, axis_angular_velocity: float) -> float:
-        pass
+    desired_velocity = get_desired_axis_velocity(axis_rotation)
+    if axis_angular_velocity == desired_velocity:
+        return 0
+    elif axis_angular_velocity < desired_velocity:
+        return -HOVER_TORQUE
+    else:
+        return HOVER_TORQUE
 
 
 def get_desired_axis_velocity(axis_rotation: float) -> float:
