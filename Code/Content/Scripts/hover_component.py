@@ -1,4 +1,5 @@
 import unreal_engine as ue
+from framework.hover import get_desired_axis_velocity
 from unreal_engine import FVector
 from unreal_engine.classes import KismetMathLibrary
 
@@ -23,22 +24,8 @@ class HoverComponent:
         self.static_mesh_component.add_torque(torque, 'None', True)
 
     def __get_axis_torque(self, axis_rotation: float, axis_angular_velocity: float) -> float:
-        desired_velocity = self.__get_desired_axis_velocity(axis_rotation)
+        desired_velocity = get_desired_axis_velocity(axis_rotation)
         if axis_angular_velocity < desired_velocity:
             return -1
         else:
             return 1
-
-    def __get_desired_axis_velocity(self, axis_rotation: float) -> float:
-        abs_axis_rotation = abs(axis_rotation)
-        if abs_axis_rotation < DAMP_START_ANGLE:
-            desired_velocity = KismetMathLibrary.Lerp(0, MAX_AXIS_VELOCITY, abs_axis_rotation / DAMP_START_ANGLE)
-            if axis_rotation < 0:
-                return -desired_velocity
-            else:
-                return desired_velocity
-        else:
-            if axis_rotation < 0:
-                return -MAX_AXIS_VELOCITY
-            else:
-                return MAX_AXIS_VELOCITY

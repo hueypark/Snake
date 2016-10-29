@@ -8,3 +8,7 @@ class TestHover:
 
         assert MAX_AXIS_VELOCITY == get_desired_axis_velocity(DAMP_START_ANGLE)
         assert -MAX_AXIS_VELOCITY == get_desired_axis_velocity(-DAMP_START_ANGLE)
+
+        for i in range(11):
+            mul = i * 0.1
+            assert MAX_AXIS_VELOCITY * mul == get_desired_axis_velocity(DAMP_START_ANGLE * mul)
