@@ -1,4 +1,5 @@
 import unreal_engine as ue
+from framework import hover
 from unreal_engine import FVector
 
 from config import SNAKE_MOVE_SPEED_HEAD
@@ -22,7 +23,11 @@ class SnakeHead:
         self.uobject.bind_axis('TurnRate', self.__turn)
 
     def tick(self, delta_time):
+        self.__hover()
+
         self.__move_forward(delta_time)
+
+        return
         self.body_spawn_remain_time -= delta_time
         if self.body_spawn_remain_time < 0:
             self.body_spawn_remain_time += BODY_SPAWN_PERIOD
@@ -34,6 +39,15 @@ class SnakeHead:
                 snake_body.set_prev_snake(self.bodys[-1])
 
             self.bodys.append(snake_body)
+
+    def __hover(self):
+        angular_velocity = self.static_mesh_component.get_physics_angular_velocity()
+        rotation = self.static_mesh_component.get_world_rotation()
+        torque = FVector(
+            hover.get_axis_torque(angular_velocity.x, rotation.roll),
+            hover.get_axis_torque(angular_velocity.y, rotation.pitch),
+            0)
+        self.static_mesh_component.add_torque(torque, 'None', True)
 
     def __move_forward(self, delta_time):
         location = self.uobject.get_actor_location()
