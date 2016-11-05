@@ -1,10 +1,10 @@
 import unreal_engine as ue
+from config import SNAKE_ACCELERATION, SNAKE_MAX_SPEED
 from framework import hover
 from unreal_engine import FVector
-
-from config import SNAKE_MOVE_SPEED_HEAD
 from pawns.snake_body import SnakeBody
 
+SQUARE_SNAKE_MAX_SPEED = SNAKE_MAX_SPEED * SNAKE_MAX_SPEED
 SNAKE_TURN_RATE_HEAD = 360
 BODY_SPAWN_PERIOD = 2
 
@@ -25,9 +25,9 @@ class SnakeHead:
     def tick(self, delta_time):
         self.__hover()
 
-        self.__move_forward(delta_time)
-
+        self.__move_forward()
         return
+
         self.body_spawn_remain_time -= delta_time
         if self.body_spawn_remain_time < 0:
             self.body_spawn_remain_time += BODY_SPAWN_PERIOD
@@ -49,10 +49,12 @@ class SnakeHead:
             0)
         self.static_mesh_component.add_torque(torque, 'None', True)
 
-    def __move_forward(self, delta_time):
-        location = self.uobject.get_actor_location()
-        location += self.uobject.get_actor_forward() * SNAKE_MOVE_SPEED_HEAD * delta_time
-        self.uobject.set_actor_location(location)
+    def __move_forward(self):
+        velocity = self.static_mesh_component.get_physics_linear_velocity()
+        forward = self.static_mesh_component.get_forward_vector()
+        forward_velocity = velocity.project_on_to_normal(forward)
+        if forward_velocity.length_squared() < SQUARE_SNAKE_MAX_SPEED:
+            self.static_mesh_component.add_force(forward * SNAKE_ACCELERATION, 'None', True)
 
     def __turn(self, axis_value):
         angular_velocity = self.static_mesh_component.get_physics_angular_velocity()
